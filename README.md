@@ -1,2 +1,2 @@
-# Meteogalicia
-Class for accesing meteogalicia data from the geojson and API services
+# GIS_analysis
+Classes and functions for accesing and woriking GIS data
