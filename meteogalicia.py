@@ -6,6 +6,8 @@ import geopandas as gpd
 import utm
 import netCDF4
 import time
+import matplotlib.pyplot as plt
+import contextily as ctx
 
 class Meteogalicia:
     """Class for accesing Metogalicia's data. The class covers the THREDDS server for only one of the models that can be found there. However the function
@@ -13,7 +15,7 @@ class Meteogalicia:
     def __init__(self):
         self.basic_url_mensuais="https://servizos.meteogalicia.gal/mgrss/observacion/datosMensuaisEstacionsMeteo.action"
     
-    def get_stations(self):
+    def stations_info(self):
         """Returns information about all the meteorological stations
 
         Returns:
@@ -27,7 +29,7 @@ class Meteogalicia:
         """Gets the data from MeteoGalicia
 
             To check the available variables, go to https://www.meteogalicia.gal/observacion/rede/parametrosIndex.action and choose
-            the desired requency: 10-minute, hourly, daily, monthly.
+            the desired requency: 10-minute, hourly, daily, monthly. The function is only built for the two most common cases: daily and monthly
         Args:
             variable_code (str): Check them in the link above
             start_date (str): Starting date as dd/mm/yyyy
@@ -41,6 +43,7 @@ class Meteogalicia:
             freq="Diarios"
         elif frequency == "monthly":
             freq="Mensuais"
+            
         r=requests.get("https://servizos.meteogalicia.gal/mgrss/observacion/datos"+freq+"EstacionsMeteo.action?idParam=%s&dataIni=%s&dataFin=%s" %(variable_code,start_date,finish_date))
         myjson=r.json()
         #print(myjson)
@@ -66,7 +69,7 @@ class Meteogalicia:
             else:
                 df=pd.concat([df,pd.DataFrame({"Dates":date,"Stations":stations,"Counties":concellos,"idStation":idestaciones,"Province":provincia,"utmx":utmx,"utmy":utmy,"CodeParameter":codigoparam,"CodeValidation":lncodval,"NameParameter":nomeparametro,"Units":units,"Value":value})])
         #adding more information about stations: altitude and coordinates in degrees
-        info_stations=self.get_stations()
+        info_stations=self.stations_info()
         df=df.merge(info_stations[["altitude","idEstacion","lat","lon"]],how="inner",left_on=["idStation"],right_on=["idEstacion"])
         
         return df
@@ -162,3 +165,22 @@ class Meteogalicia:
 
 
         return thredds_df
+    
+if __name__ == "__main__":
+
+    #initiate the class
+    con=Meteogalicia()
+    #see info about stations
+    print(con.stations_info())
+    #map stations
+    df=pd.DataFrame(con.stations_info())
+    gdf=gpd.GeoDataFrame(data=df,crs="EPSG:4326",geometry=gpd.points_from_xy(df.lon,df.lat))
+    fig=plt.figure()
+    ax=fig.add_subplot(111)
+    gdf.plot(ax=ax)
+    ctx.add_basemap(ax=ax, crs=gdf.crs, url = ctx.providers.OpenSeaMap.url)
+    plt.show()
+
+    #get maximum daily temperature at 15 m height for 2018 in the geojson services
+    data=con.get_stations_data("TA_MAX_15m","01/01/2018","31/12/2018","daily")
+    print(data)
