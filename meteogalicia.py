@@ -170,17 +170,33 @@ if __name__ == "__main__":
 
     #initiate the class
     con=Meteogalicia()
+
     #see info about stations
     print(con.stations_info())
-    #map stations
+    
+    #map stations with their altitude
     df=pd.DataFrame(con.stations_info())
     gdf=gpd.GeoDataFrame(data=df,crs="EPSG:4326",geometry=gpd.points_from_xy(df.lon,df.lat))
     fig=plt.figure()
     ax=fig.add_subplot(111)
-    gdf.plot(ax=ax)
-    ctx.add_basemap(ax=ax, crs=gdf.crs, url = ctx.providers.OpenSeaMap.url)
+    ax.title.set_text("Altitude (m) and location of the stations")
+    gdf.plot("altitude",ax=ax,legend=True)
+    ctx.add_basemap(ax=ax, crs=gdf.crs, source=ctx.providers.OpenStreetMap.DE.url)
     plt.show()
 
-    #get maximum daily temperature at 15 m height for 2018 in the geojson services
-    data=con.get_stations_data("TA_MAX_15m","01/01/2018","31/12/2018","daily")
+    # #get maximum daily temperature at 15 m height for 2018 in the geojson services
+    # data=con.get_stations_data("TA_MAX_15m","01/01/2018","31/12/2018","daily")
+    # print(data)
+
+    #get monthly average wind speed  at 2m in the geojson services during years 2020-2022 and plot mean at each station
+    data=con.get_time_series("HSOL_SUM_1.5m",2020,2022,freq="monthly")
     print(data)
+    data=data.groupby(by="idStation",as_index=False).mean(numeric_only=True)
+    new_gdf=gpd.GeoDataFrame(data=data,crs="EPSG:4326",geometry=gpd.points_from_xy(data.lon,data.lat))
+    print(new_gdf)
+    fig2=plt.figure()
+    ax2=fig2.add_subplot(111)
+    ax2.title.set_text("Mean wind speed (m/s)")
+    ctx.add_basemap(ax=ax2, crs=new_gdf.crs, source=ctx.providers.OpenStreetMap.DE.url)
+    new_gdf.plot("Value",ax=ax2,legend=True)
+    plt.show()

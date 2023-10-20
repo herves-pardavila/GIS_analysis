@@ -177,7 +177,7 @@ if __name__ == '__main__':
     fig=plt.figure()
     ax=fig.add_subplot(111)
     gdf.plot(ax=ax)
-    ctx.add_basemap(ax=ax, crs=gdf.crs, url = ctx.providers.OpenSeaMap.url)
+    ctx.add_basemap(ax=ax, crs=gdf.crs, source= ctx.providers.OpenStreetMap.DE.url)
     plt.show()
 
 
